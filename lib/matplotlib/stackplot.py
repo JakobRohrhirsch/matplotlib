@@ -14,7 +14,7 @@ __all__ = ['stackplot']
 
 
 def stackplot(axes, x, *args,
-              labels=(), colors=None, baseline='zero',
+              labels=(), colors=None, baseline='zero', baseline_array=None
               **kwargs):
     """
     Draw a stacked area plot.
@@ -31,7 +31,7 @@ def stackplot(axes, x, *args,
             stackplot(x, y)               # where y is MxN
             stackplot(x, y1, y2, y3, y4)  # where y1, y2, y3, y4, are all 1xNm
 
-    baseline : {'zero', 'sym', 'wiggle', 'weighted_wiggle'}
+    baseline : {'zero', 'sym', 'wiggle', 'weighted_wiggle', 'custom'}
         Method used to calculate the baseline:
 
         - ``'zero'``: Constant zero baseline, i.e. a simple stacked plot.
@@ -41,6 +41,11 @@ def stackplot(axes, x, *args,
         - ``'weighted_wiggle'``: Does the same but weights to account for
           size of each layer. It is also called 'Streamgraph'-layout. More
           details can be found at http://leebyron.com/streamgraph/.
+        - ``'custom'``: Uses a custom baseline provided as an additional
+          parameter baseline_array.
+
+    baseline_array : 1d array of dimension N. Has to have the same shape as x. Only
+        required if baseline='custom'
 
     labels : Length N sequence of strings
         Labels to assign to each data series.
@@ -70,7 +75,7 @@ def stackplot(axes, x, *args,
     # We'll need a float buffer for the upcoming calculations.
     stack = np.cumsum(y, axis=0, dtype=np.promote_types(y.dtype, np.float32))
 
-    cbook._check_in_list(['zero', 'sym', 'wiggle', 'weighted_wiggle'],
+    cbook._check_in_list(['zero', 'sym', 'wiggle', 'weighted_wiggle', 'custom'],
                          baseline=baseline)
     if baseline == 'zero':
         first_line = 0.
@@ -99,6 +104,11 @@ def stackplot(axes, x, *args,
         center = (move_up - 0.5) * increase
         center = np.cumsum(center.sum(0))
         first_line = center - 0.5 * total
+        stack += first_line
+
+    elif baseline == 'custom':
+        # use a custom baseline
+        first_line = baseline_array.copy()
         stack += first_line
 
     # Color between x = 0 and the first array.
